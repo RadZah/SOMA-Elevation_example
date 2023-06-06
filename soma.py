@@ -3,29 +3,6 @@ import sys
 import numpy as np
 import requests
 
-from _private_api_ley import *
-
-
-class GoogleMapInstance:
-    API_REQUESTS_COUNT = 0  # Class variable
-    BASE_URL = "https://maps.googleapis.com/maps/api/elevation/json"
-    API_KEY = API_KEY
-
-    @classmethod
-    def get_coordinates_elevation(cls, latt, long):
-        # API Call to get the position values
-        # url = f"https://maps.googleapis.com/maps/api/elevation/json?locations={lat},{lng}&key={API_KEY}"
-        url = f"{cls.BASE_URL}?locations={latt},{long}&key={cls.API_KEY}"
-        try:
-            GoogleMapInstance.API_REQUESTS_COUNT += 1
-            response = requests.get(url)
-        except requests.exceptions.RequestException as e:
-            print(e)
-            sys.exit(1)
-        data = response.json()
-        elevation = data["results"][0]["elevation"]
-        return elevation
-
 
 class OpenTopoData:
     API_REQUESTS_COUNT = 0  # Class variable
@@ -43,6 +20,27 @@ class OpenTopoData:
             print(e)
             sys.exit(1)
 
+        data = response.json()
+        elevation = data["results"][0]["elevation"]
+        return elevation
+
+
+class GoogleMapInstance:
+    API_REQUESTS_COUNT = 0  # Class variable
+    BASE_URL = "https://maps.googleapis.com/maps/api/elevation/json"
+    API_KEY = "Your-Private-Key-for-Google-Maps-Elevation-API"  # https://console.cloud.google.com/
+
+    @classmethod
+    def get_coordinates_elevation(cls, latt, long):
+        # API Call to get the position values
+        # url = f"https://maps.googleapis.com/maps/api/elevation/json?locations={lat},{lng}&key={API_KEY}"
+        url = f"{cls.BASE_URL}?locations={latt},{long}&key={cls.API_KEY}"
+        try:
+            GoogleMapInstance.API_REQUESTS_COUNT += 1
+            response = requests.get(url)
+        except requests.exceptions.RequestException as e:
+            print(e)
+            sys.exit(1)
         data = response.json()
         elevation = data["results"][0]["elevation"]
         return elevation
@@ -78,7 +76,7 @@ class Soma:
 
     def __init__(self,
                  path_length=3,
-                 step=0.5,  # step=0.11,
+                 step=0.4,  # step=0.11,
                  population_size=15,
                  migrations=3,
                  accepted_error=10
@@ -109,6 +107,12 @@ class Soma:
         self.BEST_FITNESS = None
 
         self.DEBUG_MODE = False
+
+    def set_google_map_api(self):
+        self.MAP_API = "GoogleElevationMap"
+
+    def set_open_topo_data_api(self):
+        self.MAP_API = "OpenTopoData"
 
     def objective_function(self, individual):
         fittness = individual.get_fitness(self.MAP_API)
@@ -235,13 +239,13 @@ class Soma:
 
     def create_return_dict(self, msg, migrations):
         ret = {
-            "message": msg,
-            "no_of_migrations": migrations,
+            "best_elevation": self.POPULATION[self.BEST_FITNESS_INDEX].get_fitness(self.MAP_API),
             "best_latt": self.POPULATION[self.BEST_FITNESS_INDEX].latt,
             "best_long": self.POPULATION[self.BEST_FITNESS_INDEX].long,
-            "best_elevation": self.POPULATION[self.BEST_FITNESS_INDEX].get_fitness(self.MAP_API),
-            "Google_Map_API_requests": GoogleMapInstance.API_REQUESTS_COUNT,
-            "Open_Topo_Data_API_requests": OpenTopoData.API_REQUESTS_COUNT
+            "message": msg,
+            "no_of_migrations": migrations,
+            "Open_Topo_Data_API_requests": OpenTopoData.API_REQUESTS_COUNT,
+            "Google_Map_API_requests": GoogleMapInstance.API_REQUESTS_COUNT
         }
         return ret
 
